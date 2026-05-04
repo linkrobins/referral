@@ -36,11 +36,11 @@
 
                 items.add('inviteCode',
                     m('div', { className: 'Form-group' },
-                        m('label', 'Invite Code' + (required ? ' *' : ' (optional)')),
+                        m('label', required ? app.translator.trans('linkrobins-referral.forum.sign_up.invite_code_label_required') : app.translator.trans('linkrobins-referral.forum.sign_up.invite_code_label')),
                         m('input', {
                             className: 'FormControl',
                             type: 'text',
-                            placeholder: 'e.g. K7XM2QNP',
+                            placeholder: app.translator.trans('linkrobins-referral.forum.sign_up.invite_code_placeholder'),
                             value: self._inviteCode,
                             style: 'text-transform:uppercase;letter-spacing:3px;font-family:monospace;',
                             oninput: function (e) {
@@ -83,9 +83,9 @@
                 return m('div', { style: 'padding:0 16px;' },
 
                     isOwn && m('div', { style: 'margin-bottom:24px;' },
-                        m('h3', { style: 'font-size:1rem;font-weight:700;margin-bottom:4px;' }, 'Your Invite Code'),
+                        m('h3', { style: 'font-size:1rem;font-weight:700;margin-bottom:4px;' }, app.translator.trans('linkrobins-referral.forum.profile.invite_code_title')),
                         m('p', { style: 'font-size:.85rem;color:var(--muted-color);margin-bottom:8px;' },
-                            'Share this code with anyone you want to invite. They enter it in the "Invite Code" field when signing up.'
+                            app.translator.trans('linkrobins-referral.forum.profile.invite_code_help')
                         ),
                         m('div', { style: 'display:flex;align-items:center;gap:12px;' },
                             m('div', {
@@ -95,15 +95,15 @@
                                 className: 'Button Button--primary',
                                 type: 'button',
                                 onclick: function () { navigator.clipboard && navigator.clipboard.writeText(code); }
-                            }, 'Copy')
+                            }, app.translator.trans('linkrobins-referral.forum.profile.copy'))
                         )
                     ),
 
                     m('div',
-                        m('h3', { style: 'font-size:1rem;font-weight:700;margin-bottom:8px;' }, 'Total Referrals'),
+                        m('h3', { style: 'font-size:1rem;font-weight:700;margin-bottom:8px;' }, app.translator.trans('linkrobins-referral.forum.profile.total_referrals')),
                         m('p', { style: 'font-size:2rem;font-weight:800;color:var(--primary-color);' }, count),
                         count === 0 && m('p', { style: 'color:var(--muted-color);font-size:.9rem;margin-top:4px;' },
-                            'No referrals yet. Share your invite code to get started!'
+                            app.translator.trans('linkrobins-referral.forum.profile.no_referrals')
                         )
                     )
                 );
@@ -118,7 +118,7 @@
             }
             content() {
                 const from = this.attrs.notification.fromUser();
-                return (from ? from.displayName() : '') + ' registered using your invite code!';
+                return app.translator.trans('linkrobins-referral.forum.notification.user_referred').replace('{displayName}', from ? from.displayName() : '');
             }
             excerpt() { return ''; }
         }
@@ -139,7 +139,7 @@
                     href: app.route('user.referrals', { username: this.user.username() }),
                     icon: 'fas fa-user-check',
                 },
-                    'Referrals',
+                    app.translator.trans('linkrobins-referral.forum.profile.tab'),
                     count > 0 && m('span', {
                         className: 'Button-badge'
                     }, count)

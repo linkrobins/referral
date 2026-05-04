@@ -26,9 +26,9 @@ app.initializers.add('linkrobins/referral-admin', function () {
         return m('div', { className: 'ExtensionPage-settings' },
             m('div', { className: 'container' },
                 m('div', { className: 'Form-group' },
-                    m('label', 'Require invite code to register'),
+                    m('label', app.translator.trans('linkrobins-referral.admin.settings.require_label')),
                     m('p', { className: 'helpText' },
-                        'When enabled, users must enter a valid invite code to complete registration.'
+                        app.translator.trans('linkrobins-referral.admin.settings.require_help')
                     ),
                     m('div', { style: 'margin-top:.5rem;' },
                         m('label', { style: 'display:flex;align-items:center;gap:10px;cursor:pointer;' },
@@ -37,7 +37,7 @@ app.initializers.add('linkrobins/referral-admin', function () {
                                 checked: current,
                                 onchange: toggle,
                             }),
-                            m('span', current ? 'Enabled' : 'Disabled')
+                            m('span', current ? app.translator.trans('linkrobins-referral.admin.settings.enabled') : app.translator.trans('linkrobins-referral.admin.settings.disabled'))
                         )
                     )
                 )

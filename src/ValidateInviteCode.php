@@ -30,7 +30,7 @@ class ValidateInviteCode
 
         if ($required && !$code) {
             throw new ValidationException([
-                'inviteCode' => ['An invite code is required to register.'],
+                'inviteCode' => [app('translator')->trans('linkrobins-referral.validation.required')],
             ]);
         }
 
@@ -38,7 +38,7 @@ class ValidateInviteCode
             $invite = InviteCode::where('code', strtoupper($code))->first();
             if (!$invite) {
                 throw new ValidationException([
-                    'inviteCode' => ['Invalid invite code.'],
+                    'inviteCode' => [app('translator')->trans('linkrobins-referral.validation.invalid')],
                 ]);
             }
             RecordReferral::$pendingInviteId = $invite->id;
