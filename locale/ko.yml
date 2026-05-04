@@ -1,0 +1,24 @@
+linkrobins-referral:
+  forum:
+    profile:
+      tab: 추천
+      invite_code_title: 내 초대 코드
+      invite_code_help: 초대하고 싶은 사람에게 이 코드를 공유하세요. 가입 시 "초대 코드"란에 이 코드를 입력하면 됩니다.
+      copy: 복사
+      total_referrals: 총 추천 수
+      no_referrals: 아직 추천 내역이 없습니다. 초대 코드를 공유하여 시작해 보세요!
+    sign_up:
+      invite_code_label: 초대 코드
+      invite_code_label_required: "초대 코드 *"
+      invite_code_placeholder: 예: K7XM2QNP
+    notification:
+      user_referred: "{displayName}님이 회원님의 초대 코드를 사용하여 가입했습니다!"
+  admin:
+    settings:
+      require_label: 가입 시 초대 코드 필수 설정
+      require_help: 이 설정을 활성화하면, 사용자가 가입을 완료하기 위해 반드시 유효한 초대 코드를 입력해야 합니다.
+      enabled: 활성화됨
+      disabled: 비활성화됨
+  validation:
+    required: 가입하려면 초대 코드가 필요합니다.
+    invalid: 유효하지 않은 초대 코드입니다.
