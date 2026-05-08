@@ -36,7 +36,6 @@ class InviteCode extends AbstractModel
         if ($existing) return $existing;
 
         $code = static::generateCode();
-        // Ensure uniqueness
         while (static::where('code', $code)->exists()) {
             $code = static::generateCode();
         }

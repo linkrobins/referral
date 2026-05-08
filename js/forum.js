@@ -25,11 +25,23 @@
             UserModel.prototype.joinTime      = Model.attribute('joinTime', Model.transformDate);
         }
 
+
+        (function () {
+            try {
+                var urlCode = (new URLSearchParams(window.location.search).get('ref') || '')
+                    .toUpperCase().replace(/[^A-Z0-9]/g, '');
+                if (urlCode) {
+                    localStorage.setItem('referral_pending_code', urlCode);
+                }
+            } catch (e) {}
+        })();
+
         function getRefFromUrl() {
             try {
-                var code = (new URLSearchParams(window.location.search).get('ref') || '')
+                var urlCode = (new URLSearchParams(window.location.search).get('ref') || '')
                     .toUpperCase().replace(/[^A-Z0-9]/g, '');
-                return code;
+                if (urlCode) return urlCode;
+                return (localStorage.getItem('referral_pending_code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
             } catch (e) { return ''; }
         }
 
@@ -74,6 +86,7 @@
                 } else {
                     document.cookie = 'referral_code=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax';
                 }
+                try { localStorage.removeItem('referral_pending_code'); } catch (e) {}
                 return original(e);
             });
         }
@@ -81,6 +94,10 @@
         var SignUpModalNow = flarum.reg.checkModule && flarum.reg.checkModule('core', 'forum/components/SignUpModal');
         if (SignUpModalNow) extendSignUpModal(SignUpModalNow);
         flarum.reg.onLoad('core', 'forum/components/SignUpModal', extendSignUpModal);
+
+        var SignUpSectionNow = flarum.reg.checkModule && flarum.reg.checkModule('sycho-private-facade', 'forum/components/SignUpSection');
+        if (SignUpSectionNow) extendSignUpModal(SignUpSectionNow);
+        flarum.reg.onLoad('sycho-private-facade', 'forum/components/SignUpSection', extendSignUpModal);
 
         class ReferralsPage extends UserPage {
             oninit(vnode) {
@@ -114,7 +131,11 @@
                                 className: 'Button Button--default',
                                 type: 'button',
                                 onclick: function () {
-                                    var url = window.location.origin + '/?ref=' + encodeURIComponent(code);
+
+                                    var base = app.routes['sycho-private-facade.signup']
+                                        ? app.route('sycho-private-facade.signup')
+                                        : '/';
+                                    var url = window.location.origin + base + '?ref=' + encodeURIComponent(code);
                                     navigator.clipboard && navigator.clipboard.writeText(url);
                                 }
                             }, app.translator.trans('linkrobins-referral.forum.profile.copy_link'))
