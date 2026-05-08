@@ -59,7 +59,7 @@ Enable the extension in the Flarum admin panel under **Extensions**.
 
 1. Go to your profile and click the **Referrals** tab
 2. Your personal invite code is displayed — share it with anyone you want to invite
-3. When someone registers using your code, your referral count increases
+3. When someone registers using your code, you receive a notification and your referral count increases
 
 ### For New Users
 

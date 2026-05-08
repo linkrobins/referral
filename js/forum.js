@@ -7,13 +7,13 @@
     app.initializers.add('linkrobins/referral', function () {
 
         var extend       = flarum.reg.get('core', 'common/extend').extend;
+        var override     = flarum.reg.get('core', 'common/extend').override;
         var Model        = flarum.reg.get('core', 'common/Model');
         var UserPage     = flarum.reg.get('core', 'forum/components/UserPage');
         var LinkButton   = flarum.reg.get('core', 'common/components/LinkButton');
         var Link         = flarum.reg.get('core', 'common/components/Link');
         var Avatar       = flarum.reg.get('core', 'common/components/Avatar');
         var humanTime    = flarum.reg.get('core', 'common/helpers/humanTime');
-        var Notification = flarum.reg.get('core', 'forum/components/Notification');
         var UserPageResolver = flarum.reg.get('core', 'forum/resolvers/UserPageResolver');
 
         var UserModel = app.store.models['users'];
@@ -25,6 +25,14 @@
             UserModel.prototype.joinTime      = Model.attribute('joinTime', Model.transformDate);
         }
 
+        function getRefFromUrl() {
+            try {
+                var code = (new URLSearchParams(window.location.search).get('ref') || '')
+                    .toUpperCase().replace(/[^A-Z0-9]/g, '');
+                return code;
+            } catch (e) { return ''; }
+        }
+
         function extendSignUpModal(SignUpModal) {
             if (!SignUpModal || SignUpModal._referralExtended) return;
             SignUpModal._referralExtended = true;
@@ -32,13 +40,16 @@
             extend(SignUpModal.prototype, 'fields', function (items) {
                 var self     = this;
                 var required = app.forum && app.forum.attribute('referralRequired');
-                if (self._inviteCode === undefined) self._inviteCode = '';
+                if (self._inviteCode === undefined) self._inviteCode = getRefFromUrl();
 
                 items.add('inviteCode',
                     m('div', { className: 'Form-group' },
-                        m('label', required ? app.translator.trans('linkrobins-referral.forum.sign_up.invite_code_label_required') : app.translator.trans('linkrobins-referral.forum.sign_up.invite_code_label')),
+                        m('label', required
+                            ? app.translator.trans('linkrobins-referral.forum.sign_up.invite_code_label_required')
+                            : app.translator.trans('linkrobins-referral.forum.sign_up.invite_code_label')),
                         m('input', {
                             className: 'FormControl',
+                            name: 'inviteCode',
                             type: 'text',
                             placeholder: app.translator.trans('linkrobins-referral.forum.sign_up.invite_code_placeholder'),
                             value: self._inviteCode,
@@ -50,17 +61,20 @@
                             required: required || false,
                         })
                     ),
-                    -5
+                    5  
                 );
             });
 
-            extend(SignUpModal.prototype, 'onsubmit', function (e) {
+            override(SignUpModal.prototype, 'onsubmit', function (original, e) {
                 var code = this._inviteCode && this._inviteCode.trim();
                 if (code) {
-                    var expires = new Date(Date.now() + 10 * 60 * 1000).toUTCString(); // 10 min
+                    var expires = new Date(Date.now() + 10 * 60 * 1000).toUTCString();
                     document.cookie = 'referral_code=' + encodeURIComponent(code)
                         + '; expires=' + expires + '; path=/; SameSite=Lax';
+                } else {
+                    document.cookie = 'referral_code=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax';
                 }
+                return original(e);
             });
         }
 
@@ -87,7 +101,7 @@
                         m('p', { style: 'font-size:.85rem;color:var(--muted-color);margin-bottom:8px;' },
                             app.translator.trans('linkrobins-referral.forum.profile.invite_code_help')
                         ),
-                        m('div', { style: 'display:flex;align-items:center;gap:12px;' },
+                        m('div', { style: 'display:flex;align-items:center;gap:12px;flex-wrap:wrap;' },
                             m('div', {
                                 style: 'font-size:1.75rem;font-weight:800;letter-spacing:6px;background:var(--control-bg);padding:12px 24px;border-radius:var(--border-radius,4px);font-family:monospace;color:var(--primary-color);'
                             }, code),
@@ -95,7 +109,15 @@
                                 className: 'Button Button--primary',
                                 type: 'button',
                                 onclick: function () { navigator.clipboard && navigator.clipboard.writeText(code); }
-                            }, app.translator.trans('linkrobins-referral.forum.profile.copy'))
+                            }, app.translator.trans('linkrobins-referral.forum.profile.copy')),
+                            m('button', {
+                                className: 'Button Button--default',
+                                type: 'button',
+                                onclick: function () {
+                                    var url = window.location.origin + '/?ref=' + encodeURIComponent(code);
+                                    navigator.clipboard && navigator.clipboard.writeText(url);
+                                }
+                            }, app.translator.trans('linkrobins-referral.forum.profile.copy_link'))
                         )
                     ),
 
@@ -110,26 +132,12 @@
             }
         }
 
-        class UserReferredNotification extends Notification {
-            icon() { return 'fas fa-user-check'; }
-            href() {
-                const from = this.attrs.notification.fromUser();
-                return from ? app.route.user(from) : '#';
-            }
-            content() {
-                const from = this.attrs.notification.fromUser();
-                return app.translator.trans('linkrobins-referral.forum.notification.user_referred').replace('{displayName}', from ? from.displayName() : '');
-            }
-            excerpt() { return ''; }
-        }
-
         app.routes['user.referrals'] = {
             path: '/u/:username/referrals',
             component: ReferralsPage,
             resolverClass: UserPageResolver,
         };
 
-        app.notificationComponents.referral_user_referred = UserReferredNotification;
 
         extend(UserPage.prototype, 'navItems', function (items) {
             if (!this.user) return;
