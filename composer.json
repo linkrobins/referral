@@ -18,7 +18,7 @@
             "migrations": "migrations",
             "icon": {
                 "name": "fas fa-user-check",
-                "color": "#fff",
+                "color": "#07adcc",
                 "backgroundColor": "#1a2535"
             }
         }
