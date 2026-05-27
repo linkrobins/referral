@@ -36,9 +36,14 @@ class RecordReferral
             $rel->referred_by_user_id = $referrer->id;
             $rel->save();
 
+            // Keep the denormalised referral_count cache on the referrer in
+            // sync (read by the referralCount API attribute to avoid an
+            // N+1 COUNT() per serialized user).
+            $referrer->increment('referral_count');
+
             $invite->increment('uses');
         } catch (\Throwable $e) {
-
+            resolve(\Psr\Log\LoggerInterface::class)->warning('[linkrobins/referral] failed to record referral', ['exception' => $e]);
         }
     }
 }
