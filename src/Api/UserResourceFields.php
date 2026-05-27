@@ -28,9 +28,12 @@ class UserResourceFields
                 ->visible(fn (User $user, $context) => $context->getActor()->id === $user->id)
                 ->get(fn (User $user) => InviteCode::getOrCreateForUser($user)->code),
 
+            // The referral graph (who referred whom) is private to the user
+            // and admins; not exposed for arbitrary users via ?include=.
             ToOne::make('referredBy')
                 ->type('users')
                 ->includable()
+                ->visible(fn (User $user, $context) => $context->getActor()->id === $user->id || $context->getActor()->isAdmin())
                 ->get(function (User $user) {
                     $rel = ReferralRelation::where('user_id', $user->id)->first();
                     return $rel ? $rel->referrer : null;
@@ -39,6 +42,7 @@ class UserResourceFields
             ToMany::make('referredUsers')
                 ->type('users')
                 ->includable()
+                ->visible(fn (User $user, $context) => $context->getActor()->id === $user->id || $context->getActor()->isAdmin())
                 ->get(function (User $user) {
                     return ReferralRelation::where('referred_by_user_id', $user->id)
                         ->with('user')
