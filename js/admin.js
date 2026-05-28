@@ -45,5 +45,3 @@ app.initializers.add('linkrobins/referral-admin', function () {
         );
     });
 });
-
-module.exports = {};

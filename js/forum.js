@@ -33,7 +33,9 @@
                 if (urlCode) {
                     localStorage.setItem('referral_pending_code', urlCode);
                 }
-            } catch (e) {}
+            } catch (e) {
+                // Best-effort storage write (private mode / disabled storage); safe to ignore.
+            }
         })();
 
         function getRefFromUrl() {
@@ -196,5 +198,3 @@
     });
 
 })();
-
-module.exports = {};

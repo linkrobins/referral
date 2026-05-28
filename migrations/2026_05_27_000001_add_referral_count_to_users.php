@@ -22,9 +22,9 @@ return [
         // Backfill from existing referral relations so the cached count is
         // correct for users created before this migration.
         $schema->getConnection()->statement(
-            'UPDATE users u SET u.referral_count = ('
+            'UPDATE users SET referral_count = ('
             . ' SELECT COUNT(*) FROM referral_invited_user r'
-            . ' WHERE r.referred_by_user_id = u.id'
+            . ' WHERE r.referred_by_user_id = users.id'
             . ')'
         );
     },

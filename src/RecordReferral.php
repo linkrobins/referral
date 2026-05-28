@@ -4,10 +4,15 @@ namespace LinkRobins\Referral;
 
 use Flarum\User\Event\Registered;
 use Illuminate\Contracts\Events\Dispatcher;
+use Psr\Log\LoggerInterface;
 
 class RecordReferral
 {
     public static ?int $pendingInviteId = null;
+
+    public function __construct(
+        protected LoggerInterface $logger
+    ) {}
 
     public function subscribe(Dispatcher $events): void
     {
@@ -43,7 +48,7 @@ class RecordReferral
 
             $invite->increment('uses');
         } catch (\Throwable $e) {
-            resolve(\Psr\Log\LoggerInterface::class)->warning('[linkrobins/referral] failed to record referral', ['exception' => $e]);
+            $this->logger->warning('[linkrobins/referral] failed to record referral', ['exception' => $e]);
         }
     }
 }
