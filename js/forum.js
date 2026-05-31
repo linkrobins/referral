@@ -18,8 +18,9 @@
 
         var UserModel = app.store.models['users'];
         if (UserModel) {
-            UserModel.prototype.referralCount = Model.attribute('referralCount');
-            UserModel.prototype.referralCode  = Model.attribute('referralCode');
+            UserModel.prototype.referralCount    = Model.attribute('referralCount');
+            UserModel.prototype.referralCode     = Model.attribute('referralCode');
+            UserModel.prototype.referralEligible = Model.attribute('referralEligible');
             UserModel.prototype.referredBy    = Model.hasOne('referredBy');
             UserModel.prototype.referredUsers = Model.hasMany('referredUsers');
             UserModel.prototype.joinTime      = Model.attribute('joinTime', Model.transformDate);
@@ -81,12 +82,15 @@
 
             override(SignUpModal.prototype, 'onsubmit', function (original, e) {
                 var code = this._inviteCode && this._inviteCode.trim();
+                // Only mark the cookie Secure over HTTPS so it isn't dropped on
+                // plain-HTTP dev forums, but is never sent in cleartext on HTTPS.
+                var secure = window.location.protocol === 'https:' ? '; Secure' : '';
                 if (code) {
                     var expires = new Date(Date.now() + 10 * 60 * 1000).toUTCString();
                     document.cookie = 'referral_code=' + encodeURIComponent(code)
-                        + '; expires=' + expires + '; path=/; SameSite=Lax';
+                        + '; expires=' + expires + '; path=/; SameSite=Lax' + secure;
                 } else {
-                    document.cookie = 'referral_code=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax';
+                    document.cookie = 'referral_code=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax' + secure;
                 }
                 try { localStorage.removeItem('referral_pending_code'); } catch (e) {}
                 return original(e);
@@ -115,7 +119,15 @@
 
                 return m('div', { style: 'padding:0 16px;' },
 
-                    isOwn && m('div', { style: 'margin-bottom:24px;' },
+                    // Owner with no code = not eligible under the admin rules.
+                    isOwn && !code && m('div', { style: 'margin-bottom:24px;' },
+                        m('h3', { style: 'font-size:1rem;font-weight:700;margin-bottom:4px;' }, app.translator.trans('linkrobins-referral.forum.profile.invite_code_title')),
+                        m('p', { style: 'font-size:.85rem;color:var(--muted-color);' },
+                            app.translator.trans('linkrobins-referral.forum.profile.not_eligible')
+                        )
+                    ),
+
+                    isOwn && code && m('div', { style: 'margin-bottom:24px;' },
                         m('h3', { style: 'font-size:1rem;font-weight:700;margin-bottom:4px;' }, app.translator.trans('linkrobins-referral.forum.profile.invite_code_title')),
                         m('p', { style: 'font-size:.85rem;color:var(--muted-color);margin-bottom:8px;' },
                             app.translator.trans('linkrobins-referral.forum.profile.invite_code_help')
@@ -188,7 +200,12 @@
                 items.add('referralCount',
                     m('div', { style: 'display:flex;align-items:center;gap:6px;' },
                         m('i', { className: 'icon fas fa-user-check', style: 'color:var(--primary-color);' }),
-                        m('span', { style: 'font-weight:600;' }, count + (count === 1 ? ' referral' : ' referrals'))
+                        m('span', { style: 'font-weight:600;' }, app.translator.trans(
+                            count === 1
+                                ? 'linkrobins-referral.forum.user_card.referrals_singular'
+                                : 'linkrobins-referral.forum.user_card.referrals_plural',
+                            { count: count }
+                        ))
                     ),
                     5
                 );

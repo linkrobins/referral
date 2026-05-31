@@ -1,0 +1,93 @@
+.ReferralAdmin {
+  fieldset {
+    margin-bottom: 30px;
+  }
+
+  // Uniform vertical rhythm for every setting block in the panel.
+  .Form-group {
+    margin-bottom: 24px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    > label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+  }
+
+  .ReferralAdmin-help {
+    color: var(--muted-color);
+    margin: 2px 0 12px;
+  }
+
+  .ReferralAdmin-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 2px;
+  }
+
+  .ReferralAdmin-numberInput {
+    max-width: 120px;
+  }
+
+  .ReferralAdmin-create {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+
+    .ReferralAdmin-create-label {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .Form-group {
+      margin-bottom: 0;
+    }
+  }
+
+  .ReferralAdmin-codeChip {
+    font-family: monospace;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .ReferralAdmin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+
+    th,
+    td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--control-bg);
+      vertical-align: middle;
+    }
+
+    th {
+      font-size: 87%;
+      font-weight: 600;
+      color: var(--muted-color);
+    }
+
+    td:last-child,
+    th:last-child {
+      text-align: right;
+      white-space: nowrap;
+    }
+  }
+
+  .ReferralAdmin-expired {
+    color: var(--alert-error-color, #d9534f);
+  }
+
+  .ReferralAdmin-empty {
+    color: var(--muted-color);
+    margin-top: 16px;
+  }
+}

@@ -3,15 +3,18 @@
 namespace LinkRobins\Referral;
 
 use Flarum\Foundation\ValidationException;
+use Flarum\Locale\TranslatorInterface;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\Event\Saving;
-use Flarum\User\User;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
 
 class ValidateInviteCode
 {
     public function __construct(
-        protected SettingsRepositoryInterface $settings
+        protected SettingsRepositoryInterface $settings,
+        protected TranslatorInterface $translator,
+        protected Container $container
     ) {}
 
     public function subscribe(Dispatcher $events): void
@@ -21,27 +24,31 @@ class ValidateInviteCode
 
     public function handle(Saving $event): void
     {
-        $user     = $event->user;
-        $required = (bool) $this->settings->get('linkrobins-referral.require_referral', false);
+        $user = $event->user;
 
         if ($user->exists) return;
 
-        $code = trim($_COOKIE['referral_code'] ?? '');
+        $required = (bool) $this->settings->get('linkrobins-referral.require_referral', false);
+
+        // The code was captured off the PSR-7 request by
+        // CaptureReferralCookieMiddleware into the request-scoped state.
+        $state = $this->container->make(PendingReferralState::class);
+        $code  = trim($state->getCode() ?? '');
 
         if ($required && !$code) {
             throw new ValidationException([
-                'inviteCode' => [app('translator')->trans('linkrobins-referral.validation.required')],
+                'inviteCode' => [$this->translator->trans('linkrobins-referral.validation.required')],
             ]);
         }
 
         if ($code) {
             $invite = InviteCode::where('code', strtoupper($code))->first();
-            if (!$invite) {
+            if (!$invite || $invite->isExpired()) {
                 throw new ValidationException([
-                    'inviteCode' => [app('translator')->trans('linkrobins-referral.validation.invalid')],
+                    'inviteCode' => [$this->translator->trans('linkrobins-referral.validation.invalid')],
                 ]);
             }
-            RecordReferral::$pendingInviteId = $invite->id;
+            $state->setInviteId($invite->id);
         }
     }
 }

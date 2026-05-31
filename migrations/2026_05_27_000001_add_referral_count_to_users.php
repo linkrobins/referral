@@ -20,13 +20,20 @@ return [
         }
 
         // Backfill from existing referral relations so the cached count is
-        // correct for users created before this migration.
-        $schema->getConnection()->statement(
-            'UPDATE users SET referral_count = ('
-            . ' SELECT COUNT(*) FROM referral_invited_user r'
-            . ' WHERE r.referred_by_user_id = users.id'
-            . ')'
-        );
+        // correct for users created before this migration. The table prefix is
+        // applied to the UPDATE target by the query builder, and prepended to
+        // the raw correlated subquery so forums using a prefix backfill the
+        // right tables instead of erroring / leaving every count at 0.
+        $connection = $schema->getConnection();
+        $prefix     = $connection->getTablePrefix();
+        $users      = $prefix . 'users';
+        $invited    = $prefix . 'referral_invited_user';
+
+        $connection->table('users')->update([
+            'referral_count' => $connection->raw(
+                "(SELECT COUNT(*) FROM {$invited} WHERE {$invited}.referred_by_user_id = {$users}.id)"
+            ),
+        ]);
     },
 
     'down' => function (Builder $schema) {

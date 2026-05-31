@@ -2,20 +2,34 @@
 
 use Flarum\Api\Resource\UserResource;
 use Flarum\Extend;
+use LinkRobins\Referral\Api\Controller\CreateCampaignCodeController;
+use LinkRobins\Referral\Api\Controller\DeleteCampaignCodeController;
+use LinkRobins\Referral\Api\Controller\ListCampaignCodesController;
 use LinkRobins\Referral\Api\UserResourceFields;
+use LinkRobins\Referral\Http\CaptureReferralCookieMiddleware;
 use LinkRobins\Referral\Http\StripRefParamMiddleware;
 use LinkRobins\Referral\RecordReferral;
+use LinkRobins\Referral\ReferralServiceProvider;
 use LinkRobins\Referral\ValidateInviteCode;
 
 return [
+    (new Extend\ServiceProvider())
+        ->register(ReferralServiceProvider::class),
+
     (new Extend\Middleware('forum'))
         ->add(StripRefParamMiddleware::class),
+
+    // Registration is POST /api/users, so the invite-code cookie is captured
+    // off the PSR-7 request on the api stack and handed to the scoped state.
+    (new Extend\Middleware('api'))
+        ->add(CaptureReferralCookieMiddleware::class),
 
     (new Extend\Frontend('forum'))
         ->js(__DIR__ . '/js/dist/forum.js'),
 
     (new Extend\Frontend('admin'))
-        ->js(__DIR__ . '/js/dist/admin.js'),
+        ->js(__DIR__ . '/js/dist/admin.js')
+        ->css(__DIR__ . '/less/admin.less'),
 
     new Extend\Locales(__DIR__ . '/locale'),
 
@@ -26,7 +40,17 @@ return [
         ->subscribe(ValidateInviteCode::class)
         ->subscribe(RecordReferral::class),
 
+    // Admin-only management of standalone campaign codes.
+    (new Extend\Routes('api'))
+        ->get('/referral/campaign-codes', 'linkrobins-referral.campaign-codes.list', ListCampaignCodesController::class)
+        ->post('/referral/campaign-codes', 'linkrobins-referral.campaign-codes.create', CreateCampaignCodeController::class)
+        ->delete('/referral/campaign-codes/{id}', 'linkrobins-referral.campaign-codes.delete', DeleteCampaignCodeController::class),
+
     (new Extend\Settings())
         ->serializeToForum('referralRequired', 'linkrobins-referral.require_referral', 'boolval')
-        ->default('linkrobins-referral.require_referral', '0'),
+        ->default('linkrobins-referral.require_referral', '0')
+        ->default('linkrobins-referral.eligibility_groups', '')
+        ->default('linkrobins-referral.eligibility_min_posts', '0')
+        ->default('linkrobins-referral.eligibility_min_age_days', '0')
+        ->default('linkrobins-referral.eligibility_whitelist', ''),
 ];
