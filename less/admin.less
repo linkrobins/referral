@@ -1,6 +1,14 @@
 .ReferralAdmin {
-  fieldset {
-    margin-bottom: 30px;
+  // FieldSet renders as a <div class="FieldSet"> (not a <fieldset>), so the
+  // section gap must target the class. This is the single source of spacing
+  // between sections; trailing margins inside each section are zeroed below so
+  // every section break is an identical, comfortable gap.
+  .FieldSet {
+    margin-bottom: 34px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 
   // Uniform vertical rhythm for every setting block in the panel.
@@ -21,6 +29,12 @@
   .ReferralAdmin-help {
     color: var(--muted-color);
     margin: 2px 0 12px;
+
+    // When a section ends on its help text (e.g. General), don't let it add
+    // extra space on top of the section gap.
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 
   .ReferralAdmin-groups {
