@@ -20,20 +20,28 @@ return [
         }
 
         // Backfill from existing referral relations so the cached count is
-        // correct for users created before this migration. The table prefix is
-        // applied to the UPDATE target by the query builder, and prepended to
-        // the raw correlated subquery so forums using a prefix backfill the
-        // right tables instead of erroring / leaving every count at 0.
+        // correct for users created before this migration. Only users who
+        // actually referred someone need a non-zero count; everyone else keeps
+        // the column default of 0. Restricting the write set to real referrers
+        // -- and updating them in chunks -- avoids holding a write lock on the
+        // whole users table while a correlated COUNT() runs per row, which on a
+        // large forum would queue registrations and risk a migration timeout.
+        // The query builder applies the table prefix to both tables for us.
         $connection = $schema->getConnection();
-        $prefix     = $connection->getTablePrefix();
-        $users      = $prefix . 'users';
-        $invited    = $prefix . 'referral_invited_user';
 
-        $connection->table('users')->update([
-            'referral_count' => $connection->raw(
-                "(SELECT COUNT(*) FROM {$invited} WHERE {$invited}.referred_by_user_id = {$users}.id)"
-            ),
-        ]);
+        $connection->table('referral_invited_user')
+            ->select('referred_by_user_id')
+            ->selectRaw('COUNT(*) as referral_total')
+            ->whereNotNull('referred_by_user_id')
+            ->groupBy('referred_by_user_id')
+            ->orderBy('referred_by_user_id')
+            ->chunk(500, function ($rows) use ($connection) {
+                foreach ($rows as $row) {
+                    $connection->table('users')
+                        ->where('id', $row->referred_by_user_id)
+                        ->update(['referral_count' => (int) $row->referral_total]);
+                }
+            });
     },
 
     'down' => function (Builder $schema) {
