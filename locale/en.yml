@@ -50,6 +50,7 @@ linkrobins-referral:
       confirm_delete: Delete this campaign code? Anyone using it will no longer be able to register with it.
   api:
     invalid_expiry: Invalid expiry date.
+    label_too_long: The label is too long.
   validation:
     required: An invite code is required to register.
     invalid: Invalid invite code.

@@ -27,6 +27,13 @@ class CaptureReferralCookieMiddleware implements MiddlewareInterface
         $cookies = $request->getCookieParams();
         $code = isset($cookies['referral_code']) ? trim((string) $cookies['referral_code']) : '';
 
+        // Valid codes are 8 characters; reject an implausibly long cookie value
+        // (sent unauthenticated on every POST /api/users) before it ever reaches
+        // a DB lookup. 16 leaves generous headroom over the real length.
+        if (strlen($code) > 16) {
+            $code = '';
+        }
+
         if ($code !== '') {
             // Resolve at call time (not via constructor injection) so we always
             // get the current request's scoped instance, even if this middleware

@@ -26,6 +26,14 @@ class CreateCampaignCodeController implements RequestHandlerInterface
         $attributes = $body['data']['attributes'] ?? $body;
 
         $label = isset($attributes['label']) ? trim((string) $attributes['label']) : '';
+        // The label column is VARCHAR(255); reject an over-long label with a
+        // clean 422 instead of letting it hit the database and surface as a
+        // truncation/constraint 500.
+        if (mb_strlen($label) > 255) {
+            throw new ValidationException([
+                'label' => [$this->translator->trans('linkrobins-referral.api.label_too_long')],
+            ]);
+        }
         $label = $label !== '' ? $label : null;
 
         $expiresAt = null;
