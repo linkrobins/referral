@@ -4,6 +4,7 @@ use Flarum\Api\Resource\UserResource;
 use Flarum\Extend;
 use LinkRobins\Referral\Api\Controller\CreateCampaignCodeController;
 use LinkRobins\Referral\Api\Controller\DeleteCampaignCodeController;
+use LinkRobins\Referral\Api\Controller\GenerateMyCodeController;
 use LinkRobins\Referral\Api\Controller\ListCampaignCodesController;
 use LinkRobins\Referral\Api\UserResourceFields;
 use LinkRobins\Referral\Http\CaptureReferralCookieMiddleware;
@@ -25,7 +26,8 @@ return [
         ->add(CaptureReferralCookieMiddleware::class),
 
     (new Extend\Frontend('forum'))
-        ->js(__DIR__ . '/js/dist/forum.js'),
+        ->js(__DIR__ . '/js/dist/forum.js')
+        ->css(__DIR__ . '/less/forum.less'),
 
     (new Extend\Frontend('admin'))
         ->js(__DIR__ . '/js/dist/admin.js')
@@ -40,8 +42,11 @@ return [
         ->subscribe(ValidateInviteCode::class)
         ->subscribe(RecordReferral::class),
 
-    // Admin-only management of standalone campaign codes.
+    // Admin-only management of standalone campaign codes, plus the user's own
+    // code-generation endpoint (the write half of the referral-code flow, kept
+    // off the GET serialization path).
     (new Extend\Routes('api'))
+        ->post('/referral/my-code', 'linkrobins-referral.my-code.generate', GenerateMyCodeController::class)
         ->get('/referral/campaign-codes', 'linkrobins-referral.campaign-codes.list', ListCampaignCodesController::class)
         ->post('/referral/campaign-codes', 'linkrobins-referral.campaign-codes.create', CreateCampaignCodeController::class)
         ->delete('/referral/campaign-codes/{id}', 'linkrobins-referral.campaign-codes.delete', DeleteCampaignCodeController::class),

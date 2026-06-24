@@ -1,0 +1,84 @@
+// Referral profile tab + sign-up + user-card styling. Extracted from inline
+// style attributes so forums can theme these without !important and so the
+// rules live alongside the extension's other styles.
+
+.ReferralSignup-codeInput {
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-family: monospace;
+}
+
+.ReferralProfile {
+  padding: 0 16px;
+
+  &-section {
+    margin-bottom: 24px;
+  }
+
+  &-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  &-note {
+    font-size: 0.85rem;
+    color: var(--muted-color);
+  }
+
+  &-help {
+    font-size: 0.85rem;
+    color: var(--muted-color);
+    margin-bottom: 8px;
+  }
+
+  &-codeRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &-code {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: 6px;
+    background: var(--control-bg);
+    padding: 12px 24px;
+    border-radius: var(--border-radius, 4px);
+    font-family: monospace;
+    color: var(--primary-color);
+  }
+
+  &-totalHeading {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  &-count {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--primary-color);
+  }
+
+  &-empty {
+    color: var(--muted-color);
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+}
+
+.ReferralCard-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .ReferralCard-icon {
+    color: var(--primary-color);
+  }
+
+  .ReferralCard-text {
+    font-weight: 600;
+  }
+}

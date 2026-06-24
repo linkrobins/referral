@@ -14,6 +14,7 @@
         var Link         = flarum.reg.get('core', 'common/components/Link');
         var Avatar       = flarum.reg.get('core', 'common/components/Avatar');
         var humanTime    = flarum.reg.get('core', 'common/helpers/humanTime');
+        var LoadingIndicator = flarum.reg.get('core', 'common/components/LoadingIndicator');
         var UserPageResolver = flarum.reg.get('core', 'forum/resolvers/UserPageResolver');
 
         var UserModel = app.store.models['users'];
@@ -23,7 +24,6 @@
             UserModel.prototype.referralEligible = Model.attribute('referralEligible');
             UserModel.prototype.referredBy    = Model.hasOne('referredBy');
             UserModel.prototype.referredUsers = Model.hasMany('referredUsers');
-            UserModel.prototype.joinTime      = Model.attribute('joinTime', Model.transformDate);
         }
 
 
@@ -63,12 +63,11 @@
                             ? app.translator.trans('linkrobins-referral.forum.sign_up.invite_code_label_required')
                             : app.translator.trans('linkrobins-referral.forum.sign_up.invite_code_label')),
                         m('input', {
-                            className: 'FormControl',
+                            className: 'FormControl ReferralSignup-codeInput',
                             name: 'inviteCode',
                             type: 'text',
                             placeholder: app.translator.trans('linkrobins-referral.forum.sign_up.invite_code_placeholder'),
                             value: self._inviteCode,
-                            style: 'text-transform:uppercase;letter-spacing:3px;font-family:monospace;',
                             oninput: function (e) {
                                 self._inviteCode = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
                                 e.target.value = self._inviteCode;
@@ -112,30 +111,51 @@
             }
 
             content() {
-                const user    = this.user;
-                const isOwn   = app.session && app.session.user && app.session.user.id() === user.id();
-                const count   = user.referralCount ? user.referralCount() : 0;
-                const code    = user.referralCode  ? user.referralCode()  : '';
+                const user     = this.user;
+                const isOwn    = app.session && app.session.user && app.session.user.id() === user.id();
+                const count    = user.referralCount ? user.referralCount() : 0;
+                const code     = user.referralCode  ? user.referralCode()  : '';
+                const eligible = user.referralEligible ? user.referralEligible() : false;
 
-                return m('div', { style: 'padding:0 16px;' },
+                // Generation is a write, so it no longer happens during GET
+                // serialization. When an eligible owner opens their tab without
+                // a code yet, request one (once) from the explicit endpoint and
+                // store it on the model so it renders.
+                if (isOwn && eligible && !code && !this._generating) {
+                    this._generating = true;
+                    var apiUrl = (app.forum && app.forum.attribute('apiUrl')) || '/api';
+                    app.request({ method: 'POST', url: apiUrl + '/referral/my-code' })
+                        .then((res) => {
+                            const newCode = res && res.data && res.data.code;
+                            if (newCode) user.pushAttributes({ referralCode: newCode });
+                            m.redraw();
+                        })
+                        .catch(() => { m.redraw(); });
+                }
 
-                    // Owner with no code = not eligible under the admin rules.
-                    isOwn && !code && m('div', { style: 'margin-bottom:24px;' },
-                        m('h3', { style: 'font-size:1rem;font-weight:700;margin-bottom:4px;' }, app.translator.trans('linkrobins-referral.forum.profile.invite_code_title')),
-                        m('p', { style: 'font-size:.85rem;color:var(--muted-color);' },
+                return m('div', { className: 'ReferralProfile' },
+
+                    // Not eligible under the admin rules: no code is offered.
+                    isOwn && !eligible && m('div', { className: 'ReferralProfile-section' },
+                        m('h3', { className: 'ReferralProfile-heading' }, app.translator.trans('linkrobins-referral.forum.profile.invite_code_title')),
+                        m('p', { className: 'ReferralProfile-note' },
                             app.translator.trans('linkrobins-referral.forum.profile.not_eligible')
                         )
                     ),
 
-                    isOwn && code && m('div', { style: 'margin-bottom:24px;' },
-                        m('h3', { style: 'font-size:1rem;font-weight:700;margin-bottom:4px;' }, app.translator.trans('linkrobins-referral.forum.profile.invite_code_title')),
-                        m('p', { style: 'font-size:.85rem;color:var(--muted-color);margin-bottom:8px;' },
+                    // Eligible but the code is still being generated.
+                    isOwn && eligible && !code && m('div', { className: 'ReferralProfile-section' },
+                        m('h3', { className: 'ReferralProfile-heading' }, app.translator.trans('linkrobins-referral.forum.profile.invite_code_title')),
+                        m(LoadingIndicator, { display: 'inline', size: 'small' })
+                    ),
+
+                    isOwn && eligible && code && m('div', { className: 'ReferralProfile-section' },
+                        m('h3', { className: 'ReferralProfile-heading' }, app.translator.trans('linkrobins-referral.forum.profile.invite_code_title')),
+                        m('p', { className: 'ReferralProfile-help' },
                             app.translator.trans('linkrobins-referral.forum.profile.invite_code_help')
                         ),
-                        m('div', { style: 'display:flex;align-items:center;gap:12px;flex-wrap:wrap;' },
-                            m('div', {
-                                style: 'font-size:1.75rem;font-weight:800;letter-spacing:6px;background:var(--control-bg);padding:12px 24px;border-radius:var(--border-radius,4px);font-family:monospace;color:var(--primary-color);'
-                            }, code),
+                        m('div', { className: 'ReferralProfile-codeRow' },
+                            m('div', { className: 'ReferralProfile-code' }, code),
                             m('button', {
                                 className: 'Button Button--primary',
                                 type: 'button',
@@ -157,9 +177,9 @@
                     ),
 
                     m('div',
-                        m('h3', { style: 'font-size:1rem;font-weight:700;margin-bottom:8px;' }, app.translator.trans('linkrobins-referral.forum.profile.total_referrals')),
-                        m('p', { style: 'font-size:2rem;font-weight:800;color:var(--primary-color);' }, count),
-                        count === 0 && m('p', { style: 'color:var(--muted-color);font-size:.9rem;margin-top:4px;' },
+                        m('h3', { className: 'ReferralProfile-totalHeading' }, app.translator.trans('linkrobins-referral.forum.profile.total_referrals')),
+                        m('p', { className: 'ReferralProfile-count' }, count),
+                        count === 0 && m('p', { className: 'ReferralProfile-empty' },
                             app.translator.trans('linkrobins-referral.forum.profile.no_referrals')
                         )
                     )
@@ -198,9 +218,9 @@
                 const count = user && user.referralCount ? user.referralCount() : 0;
                 if (!count) return;
                 items.add('referralCount',
-                    m('div', { style: 'display:flex;align-items:center;gap:6px;' },
-                        m('i', { className: 'icon fas fa-user-check', style: 'color:var(--primary-color);' }),
-                        m('span', { style: 'font-weight:600;' }, app.translator.trans(
+                    m('div', { className: 'ReferralCard-info' },
+                        m('i', { className: 'icon fas fa-user-check ReferralCard-icon' }),
+                        m('span', { className: 'ReferralCard-text' }, app.translator.trans(
                             count === 1
                                 ? 'linkrobins-referral.forum.user_card.referrals_singular'
                                 : 'linkrobins-referral.forum.user_card.referrals_plural',

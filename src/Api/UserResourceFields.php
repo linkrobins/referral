@@ -33,15 +33,16 @@ class UserResourceFields
                 ->visible(fn (User $user, $context) => $context->getActor()->id === $user->id)
                 ->get(fn (User $user) => $this->eligibility->isEligible($user)),
 
-            // The invite code is private to its owner and getOrCreate writes a
-            // row on first read, so only resolve it for the user themselves --
-            // never for the many users serialized as post authors. Returns null
-            // for users who don't meet the eligibility rules, so no row is
-            // written for them either.
+            // The invite code is private to its owner, so it is only resolved
+            // for the user themselves. This is a pure read: it returns the
+            // existing code, or null if the user is ineligible or hasn't
+            // generated one yet. Generation is an explicit POST
+            // /api/referral/my-code (GenerateMyCodeController) so a GET never
+            // writes -- the frontend calls it once when the referrals tab opens.
             Attribute::make('referralCode')
                 ->visible(fn (User $user, $context) => $context->getActor()->id === $user->id)
                 ->get(fn (User $user) => $this->eligibility->isEligible($user)
-                    ? InviteCode::getOrCreateForUser($user)->code
+                    ? InviteCode::where('user_id', $user->id)->value('code')
                     : null),
 
             // The referral graph (who referred whom) is private to the user
