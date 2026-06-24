@@ -1,7 +1,6 @@
 'use strict';
 
 app.initializers.add('linkrobins/referral-admin', function () {
-    var override          = flarum.reg.get('core', 'common/extend').override;
     var ExtensionPage     = flarum.reg.get('core', 'admin/components/ExtensionPage');
     var saveSettings      = flarum.reg.get('core', 'admin/utils/saveSettings');
     var FieldSet          = flarum.reg.get('core', 'common/components/FieldSet');
@@ -13,11 +12,12 @@ app.initializers.add('linkrobins/referral-admin', function () {
         return (app.forum && app.forum.attribute('apiUrl')) || '/api';
     }
 
-    override(ExtensionPage.prototype, 'content', function (original) {
-        if (!this.extension || this.extension.id !== 'linkrobins-referral') {
-            return original();
-        }
-
+    // A dedicated settings page registered for this extension only, instead of
+    // overriding the shared ExtensionPage.prototype.content (which ran for every
+    // extension's admin page and early-returned). The admin route resolver swaps
+    // this in when /extension/linkrobins-referral is opened.
+    class ReferralSettingsPage extends ExtensionPage {
+        content() {
         var self = this;
 
         function setting(key) {
@@ -244,5 +244,8 @@ app.initializers.add('linkrobins/referral-admin', function () {
                 campaignSection
             )
         );
-    });
+        }
+    }
+
+    app.registry.for('linkrobins-referral').registerPage(ReferralSettingsPage);
 });
