@@ -16,18 +16,18 @@
   }
 
   &-heading {
-    font-size: 1rem;
+    font-size: calc(1rem * var(--lr-text-scale, 1));
     font-weight: 700;
     margin-bottom: 4px;
   }
 
   &-note {
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--lr-text-scale, 1));
     color: var(--muted-color);
   }
 
   &-help {
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--lr-text-scale, 1));
     color: var(--muted-color);
     margin-bottom: 8px;
   }
@@ -40,7 +40,7 @@
   }
 
   &-code {
-    font-size: 1.75rem;
+    font-size: calc(1.75rem * var(--lr-text-scale, 1));
     font-weight: 800;
     letter-spacing: 6px;
     background: var(--control-bg);
@@ -51,20 +51,20 @@
   }
 
   &-totalHeading {
-    font-size: 1rem;
+    font-size: calc(1rem * var(--lr-text-scale, 1));
     font-weight: 700;
     margin-bottom: 8px;
   }
 
   &-count {
-    font-size: 2rem;
+    font-size: calc(2rem * var(--lr-text-scale, 1));
     font-weight: 800;
     color: var(--primary-color);
   }
 
   &-empty {
     color: var(--muted-color);
-    font-size: 0.9rem;
+    font-size: calc(0.9rem * var(--lr-text-scale, 1));
     margin-top: 4px;
   }
 }
