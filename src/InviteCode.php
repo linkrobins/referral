@@ -2,8 +2,10 @@
 
 namespace LinkRobins\Referral;
 
+use Carbon\Carbon;
 use Flarum\Database\AbstractModel;
 use Flarum\User\User;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property int         $id
@@ -12,6 +14,7 @@ use Flarum\User\User;
  * @property int         $uses
  * @property string|null $label
  * @property \Carbon\Carbon|null $expires_at
+ * @property-read User|null $user
  */
 class InviteCode extends AbstractModel
 {
@@ -21,7 +24,7 @@ class InviteCode extends AbstractModel
         'expires_at' => 'datetime',
     ];
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
@@ -89,7 +92,7 @@ class InviteCode extends AbstractModel
         $invite->code       = static::generateUniqueCode();
         $invite->uses       = 0;
         $invite->label      = $label;
-        $invite->expires_at = $expiresAt;
+        $invite->expires_at = $expiresAt !== null ? Carbon::instance($expiresAt) : null;
         $invite->save();
 
         return $invite;

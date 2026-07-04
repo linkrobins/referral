@@ -31,7 +31,7 @@ class CreateCampaignCodeController implements RequestHandlerInterface
         // truncation/constraint 500.
         if (mb_strlen($label) > 255) {
             throw new ValidationException([
-                'label' => [$this->translator->trans('linkrobins-referral.api.label_too_long')],
+                'label' => $this->translator->trans('linkrobins-referral.api.label_too_long'),
             ]);
         }
         $label = $label !== '' ? $label : null;
@@ -42,7 +42,7 @@ class CreateCampaignCodeController implements RequestHandlerInterface
                 $expiresAt = Carbon::parse($attributes['expiresAt']);
             } catch (\Throwable $e) {
                 throw new ValidationException([
-                    'expiresAt' => [$this->translator->trans('linkrobins-referral.api.invalid_expiry')],
+                    'expiresAt' => $this->translator->trans('linkrobins-referral.api.invalid_expiry'),
                 ]);
             }
         }

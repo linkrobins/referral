@@ -37,7 +37,7 @@ class ValidateInviteCode
 
         if ($required && !$code) {
             throw new ValidationException([
-                'inviteCode' => [$this->translator->trans('linkrobins-referral.validation.required')],
+                'inviteCode' => $this->translator->trans('linkrobins-referral.validation.required'),
             ]);
         }
 
@@ -45,7 +45,7 @@ class ValidateInviteCode
             $invite = InviteCode::where('code', strtoupper($code))->first();
             if (!$invite || $invite->isExpired()) {
                 throw new ValidationException([
-                    'inviteCode' => [$this->translator->trans('linkrobins-referral.validation.invalid')],
+                    'inviteCode' => $this->translator->trans('linkrobins-referral.validation.invalid'),
                 ]);
             }
             $state->setInviteId($invite->id);

@@ -3,11 +3,16 @@
     "name": "@linkrobins/referral",
     "scripts": {
         "dev": "webpack --mode development --watch",
-        "build": "webpack --mode production"
+        "build": "webpack --mode production",
+        "format": "prettier --write admin.js forum.js",
+        "format-check": "prettier --check admin.js forum.js"
     },
     "devDependencies": {
+        "@flarum/prettier-config": "^1.0.0",
         "flarum-webpack-config": "^3.0.0",
+        "prettier": "^3.3.0",
         "webpack": "^5.104.1",
         "webpack-cli": "^4.9.1"
-    }
+    },
+    "prettier": "@flarum/prettier-config"
 }
