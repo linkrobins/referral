@@ -2,9 +2,11 @@
 
 namespace LinkRobins\Referral;
 
+use Flarum\Notification\NotificationSyncer;
 use Flarum\User\Event\Registered;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
+use LinkRobins\Referral\Notification\ReferralRegisteredBlueprint;
 use Psr\Log\LoggerInterface;
 
 class RecordReferral
@@ -49,6 +51,14 @@ class RecordReferral
                     // in sync (read by the referralCount API attribute to avoid
                     // an N+1 COUNT() per serialized user).
                     $referrer->increment('referral_count');
+
+                    // Tell the referrer their code was used. Guarded by the
+                    // exists() check above, so a duplicate Registered event
+                    // can't double-notify.
+                    $this->container->make(NotificationSyncer::class)->sync(
+                        new ReferralRegisteredBlueprint($user),
+                        [$referrer]
+                    );
                 }
             }
 

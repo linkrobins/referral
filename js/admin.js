@@ -1,5 +1,7 @@
 'use strict';
 
+var qrModal = require('./qrModal');
+
 app.initializers.add('linkrobins/referral-admin', function () {
   var ExtensionPage = flarum.reg.get('core', 'admin/components/ExtensionPage');
   var saveSettings = flarum.reg.get('core', 'admin/utils/saveSettings');
@@ -10,6 +12,14 @@ app.initializers.add('linkrobins/referral-admin', function () {
 
   function apiBase() {
     return (app.forum && app.forum.attribute('apiUrl')) || '/api';
+  }
+
+  // Campaign invite link. The admin app can't resolve forum routes (e.g. a
+  // private-facade sign-up page), so this targets the forum root: the forum
+  // frontend captures ?ref= from any page it boots on.
+  function inviteUrl(code) {
+    var base = (app.forum && app.forum.attribute('baseUrl')) || window.location.origin;
+    return base.replace(/\/$/, '') + '/?ref=' + encodeURIComponent(code);
   }
 
   // A dedicated settings page registered for this extension only, instead of
@@ -256,6 +266,15 @@ app.initializers.add('linkrobins/referral-admin', function () {
                 ),
                 m(
                   'td',
+                  { className: 'ReferralAdmin-actions' },
+                  m(Button, {
+                    className: 'Button Button--icon',
+                    icon: 'fas fa-qrcode',
+                    title: trans('campaign.qr'),
+                    onclick: function () {
+                      qrModal.show(inviteUrl(c.code), c.code);
+                    },
+                  }),
                   m(Button, {
                     className: 'Button Button--icon Button--danger',
                     icon: 'fas fa-trash',

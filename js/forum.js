@@ -1,5 +1,7 @@
 'use strict';
 
+var qrModal = require('./qrModal');
+
 (function () {
   app.initializers.add('linkrobins/referral', function () {
     var extend = flarum.reg.get('core', 'common/extend').extend;
@@ -32,6 +34,14 @@
         // Best-effort storage write (private mode / disabled storage); safe to ignore.
       }
     })();
+
+    // The link a new member follows: the private-facade sign-up page when
+    // that extension provides one, else the forum root (the ?ref capture
+    // above runs on any page).
+    function inviteUrl(code) {
+      var base = app.routes['sycho-private-facade.signup'] ? app.route('sycho-private-facade.signup') : '/';
+      return window.location.origin + base + '?ref=' + encodeURIComponent(code);
+    }
 
     function getRefFromUrl() {
       try {
@@ -192,12 +202,23 @@
                     className: 'Button Button--default',
                     type: 'button',
                     onclick: function () {
-                      var base = app.routes['sycho-private-facade.signup'] ? app.route('sycho-private-facade.signup') : '/';
-                      var url = window.location.origin + base + '?ref=' + encodeURIComponent(code);
-                      navigator.clipboard && navigator.clipboard.writeText(url);
+                      navigator.clipboard && navigator.clipboard.writeText(inviteUrl(code));
                     },
                   },
                   app.translator.trans('linkrobins-referral.forum.profile.copy_link')
+                ),
+                m(
+                  'button',
+                  {
+                    className: 'Button Button--default',
+                    type: 'button',
+                    onclick: function () {
+                      qrModal.show(inviteUrl(code), code);
+                    },
+                  },
+                  m('i', { className: 'icon fas fa-qrcode Button-icon', 'aria-hidden': 'true' }),
+                  ' ',
+                  app.translator.trans('linkrobins-referral.forum.profile.qr_button')
                 )
               )
             ),
@@ -242,6 +263,121 @@
         10
       );
     });
+
+    // ---- "Someone joined with your invite code" notification ------------
+    var NOTIFICATION_TYPE = 'linkrobinsReferralRegistered';
+
+    function installNotificationComponent(Notification) {
+      if (!Notification || Notification._referralExtended) return;
+      Notification._referralExtended = true;
+
+      class ReferralRegisteredNotification extends Notification {
+        icon() {
+          return 'fas fa-user-check';
+        }
+        href() {
+          var subject = this.attrs.notification.subject();
+          return subject ? app.route('user', { username: subject.slug ? subject.slug() : subject.username() }) : '#';
+        }
+        content() {
+          var from = this.attrs.notification.fromUser && this.attrs.notification.fromUser();
+          var name = from && from.displayName ? from.displayName() : app.translator.trans('linkrobins-referral.forum.notifications.someone');
+          return app.translator.trans('linkrobins-referral.forum.notifications.registered_text', { name: name });
+        }
+        excerpt() {
+          return '';
+        }
+      }
+
+      app.notificationComponents[NOTIFICATION_TYPE] = ReferralRegisteredNotification;
+    }
+
+    var NotificationNow = flarum.reg.checkModule && flarum.reg.checkModule('core', 'forum/components/Notification');
+    if (NotificationNow) installNotificationComponent(NotificationNow);
+    flarum.reg.onLoad('core', 'forum/components/Notification', installNotificationComponent);
+
+    // NotificationGrid lives in a lazily-loaded chunk, so it isn't in the
+    // registry at init time. The string-path form of extend() defers
+    // resolution until the module actually loads.
+    extend('flarum/forum/components/NotificationGrid', 'notificationTypes', function (items) {
+      items.add(NOTIFICATION_TYPE, {
+        name: NOTIFICATION_TYPE,
+        icon: 'fas fa-user-check',
+        label: app.translator.trans('linkrobins-referral.forum.settings.notify_registered_label'),
+      });
+    });
+
+    // Core's NotificationList groups notifications by discussion and lumps
+    // anything not tied to one (like this type) into a neutral group labelled
+    // with the forum title. There's no per-type hook, so content() is
+    // reimplemented to route referral notifications into their own
+    // "Referrals" group while leaving all other grouping untouched.
+    function installNotificationGrouping(NotificationList) {
+      if (!NotificationList || NotificationList._referralExtended) return;
+      NotificationList._referralExtended = true;
+
+      override(NotificationList.prototype, 'content', function (original, state) {
+        if (state.isLoading() || !state.hasItems()) return null;
+
+        var HeaderListGroup = flarum.reg.get('core', 'forum/components/HeaderListGroup');
+        var NotificationType = flarum.reg.get('core', 'forum/components/NotificationType');
+        var Discussion = flarum.reg.get('core', 'common/models/Discussion');
+        var listItems = flarum.reg.get('core', 'common/helpers/listItems');
+
+        return state.getPages().map(function (page) {
+          var groups = [];
+          var byKey = {};
+
+          page.items.forEach(function (notification) {
+            var subject = notification.subject();
+            if (typeof subject === 'undefined') return;
+
+            var contentType = notification.contentType && notification.contentType();
+            var isReferral = contentType === NOTIFICATION_TYPE;
+
+            // Mirror core's discussion resolution for everything else.
+            var discussion = null;
+            if (!isReferral) {
+              if (Discussion && subject instanceof Discussion) discussion = subject;
+              else if (subject && subject.discussion) discussion = subject.discussion();
+            }
+
+            var key = isReferral ? 'linkrobins-referral' : discussion ? 'd' + discussion.id() : 'neutral';
+
+            byKey[key] = byKey[key] || { discussion: discussion, referral: isReferral, notifications: [] };
+            byKey[key].notifications.push(notification);
+            if (groups.indexOf(byKey[key]) === -1) groups.push(byKey[key]);
+          });
+
+          return groups.map(function (group) {
+            var label;
+            if (group.referral) {
+              label = app.translator.trans('linkrobins-referral.forum.notifications.group_label');
+            } else if (group.discussion) {
+              var badges = group.discussion.badges().toArray();
+              label = m(Link, { href: app.route.discussion(group.discussion) }, [
+                badges && badges.length ? m('ul', { className: 'HeaderListGroup-badges badges' }, listItems(badges)) : null,
+                m('span', null, group.discussion.title()),
+              ]);
+            } else {
+              label = app.forum.attribute('title');
+            }
+
+            return m(
+              HeaderListGroup,
+              { label: label },
+              group.notifications.map(function (notification) {
+                return m(NotificationType, { notification: notification });
+              })
+            );
+          });
+        });
+      });
+    }
+
+    var NotificationListNow = flarum.reg.checkModule && flarum.reg.checkModule('core', 'forum/components/NotificationList');
+    if (NotificationListNow) installNotificationGrouping(NotificationListNow);
+    flarum.reg.onLoad('core', 'forum/components/NotificationList', installNotificationGrouping);
 
     flarum.reg.onLoad('core', 'forum/components/UserCard', function (UserCard) {
       if (!UserCard) return;

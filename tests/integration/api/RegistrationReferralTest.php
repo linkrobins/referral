@@ -85,6 +85,48 @@ class RegistrationReferralTest extends TestCase
     }
 
     #[Test]
+    public function a_recorded_referral_notifies_the_referrer(): void
+    {
+        $this->prepareDatabase([
+            'referral_invite_codes' => [
+                ['id' => 1, 'user_id' => 2, 'code' => 'TESTCODE', 'uses' => 0],
+            ],
+        ]);
+
+        $response = $this->register('TESTCODE');
+
+        $this->assertEquals(201, $response->getStatusCode());
+
+        $newUser = $this->database()->table('users')->where('username', 'newmember')->first();
+        $notification = $this->database()->table('notifications')
+            ->where('user_id', 2)
+            ->where('type', 'linkrobinsReferralRegistered')
+            ->first();
+
+        $this->assertNotNull($notification, 'Expected the referrer to receive a notification.');
+        $this->assertEquals($newUser->id, $notification->subject_id);
+        $this->assertEquals($newUser->id, $notification->from_user_id);
+    }
+
+    #[Test]
+    public function campaign_codes_do_not_notify_anyone(): void
+    {
+        $this->prepareDatabase([
+            'referral_invite_codes' => [
+                ['id' => 1, 'user_id' => null, 'code' => 'CAMPAIGN', 'uses' => 0, 'label' => 'Launch'],
+            ],
+        ]);
+
+        $response = $this->register('CAMPAIGN');
+
+        $this->assertEquals(201, $response->getStatusCode());
+        $this->assertEquals(
+            0,
+            $this->database()->table('notifications')->where('type', 'linkrobinsReferralRegistered')->count()
+        );
+    }
+
+    #[Test]
     public function an_unknown_code_blocks_registration(): void
     {
         $response = $this->register('WRONGCODE');

@@ -1,3 +1,5 @@
+@import "qr.less";
+
 .ReferralAdmin {
   // FieldSet renders as a <div class="FieldSet"> (not a <fieldset>), so the
   // section gap must target the class. This is the single source of spacing
@@ -103,5 +105,14 @@
   .ReferralAdmin-empty {
     color: var(--muted-color);
     margin-top: 16px;
+  }
+}
+
+// The campaign-table actions cell holds the QR and delete buttons side by side.
+.ReferralAdmin-actions {
+  white-space: nowrap;
+
+  .Button + .Button {
+    margin-left: 4px;
   }
 }

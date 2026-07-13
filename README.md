@@ -6,23 +6,24 @@ An invite code referral system for [Flarum](https://flarum.org/) 2.0. Each membe
 
 ## Features
 
-- Every member automatically gets a unique 8-character invite code
-- Members share their code with anyone they want to invite
-- New users enter the code during sign-up — no URL tricks, no extra steps
+- Members get a unique 8-character invite code, with admin-configurable eligibility rules (allowed groups, minimum posts, account age, whitelist)
+- Share the code itself, a referral link that pre-fills it, or a QR code shown on screen and downloadable as a print-ready PNG
+- New users enter the code during sign-up, or arrive with it pre-filled via the link or QR code
 - Referral count badge appears on the member's profile nav tab and profile card
-- Referrer receives a notification when someone registers with their code
+- Referrer receives a notification (alert and optional email) when someone registers with their code
+- Admin campaign codes: standalone invite codes with labels, expiry dates, and use counts, each with its own QR code
 - Admin setting to require an invite code for all new registrations
 - Fully translatable via locale files
 
 ## Screenshots
 
-**Referrals profile tab** — shows the member's invite code and total referral count.
+**Referrals profile tab**: shows the member's invite code and total referral count.
 <img width="1390" height="922" alt="image" src="https://github.com/user-attachments/assets/4890871b-a5be-4208-adc2-602f5611e8ad" />
 
-**Sign-up modal** — includes an optional (or required) Invite Code field.
+**Sign-up modal**: includes an optional (or required) Invite Code field.
 <img width="646" height="949" alt="image" src="https://github.com/user-attachments/assets/d9fb52c6-6ffd-4163-8c1a-82dbd8962de5" />
 
-**Admin settings** — toggle to require an invite code to register.
+**Admin settings**: toggle to require an invite code to register.
 <img width="797" height="678" alt="image" src="https://github.com/user-attachments/assets/47d6cc2c-f816-42b6-8b09-81e64db2bf64" />
 
 ---
@@ -30,7 +31,7 @@ An invite code referral system for [Flarum](https://flarum.org/) 2.0. Each membe
 ## Requirements
 
 - Flarum 2.0 or later
-- PHP 8.1 or later
+- PHP 8.3 or later
 
 ---
 
@@ -58,7 +59,7 @@ Enable the extension in the Flarum admin panel under **Extensions**.
 ### For Members
 
 1. Go to your profile and click the **Referrals** tab
-2. Your personal invite code is displayed — share it with anyone you want to invite
+2. Your personal invite code is displayed, with buttons to copy it, copy a referral link, or show a QR code (with a PNG download for print)
 3. When someone registers using your code, you receive a notification and your referral count increases
 
 ### For New Users
@@ -81,13 +82,13 @@ Enable the extension in the Flarum admin panel under **Extensions**.
 The extension ships with English (`locale/en.yml`). To add a translation:
 
 1. Create a new file in the `locale/` directory named after the [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes), e.g.:
-   - `ko.yml` — Korean
-   - `zh.yml` — Simplified Chinese
-   - `es.yml` — Spanish
+   - `ko.yml`: Korean
+   - `zh.yml`: Simplified Chinese
+   - `es.yml`: Spanish
 
 2. Copy the contents of `en.yml` and translate the values
 
-3. No code changes needed — Flarum picks up locale files automatically
+3. No code changes needed; Flarum picks up locale files automatically
 
 ### Example (`es.yml`)
 
@@ -105,8 +106,8 @@ linkrobins-referral:
       invite_code_label: Código de invitación
       invite_code_label_required: "Código de invitación *"
       invite_code_placeholder: ej. K7XM2QNP
-    notification:
-      user_referred: "{displayName} se registró usando tu código de invitación."
+    notifications:
+      registered_text: "{name} se registró usando tu código de invitación"
   admin:
     settings:
       require_label: Requerir código de invitación para registrarse

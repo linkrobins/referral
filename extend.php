@@ -9,6 +9,7 @@ use LinkRobins\Referral\Api\Controller\ListCampaignCodesController;
 use LinkRobins\Referral\Api\UserResourceFields;
 use LinkRobins\Referral\Http\CaptureReferralCookieMiddleware;
 use LinkRobins\Referral\Http\StripRefParamMiddleware;
+use LinkRobins\Referral\Notification\ReferralRegisteredBlueprint;
 use LinkRobins\Referral\RecordReferral;
 use LinkRobins\Referral\ReferralServiceProvider;
 use LinkRobins\Referral\ValidateInviteCode;
@@ -41,6 +42,15 @@ return [
     (new Extend\Event())
         ->subscribe(ValidateInviteCode::class)
         ->subscribe(RecordReferral::class),
+
+    // "Someone joined with your invite code", to the referrer. Alert and
+    // email both default on; users can opt out per-channel in their
+    // notification preferences.
+    (new Extend\Notification())
+        ->type(ReferralRegisteredBlueprint::class, ['alert', 'email']),
+
+    (new Extend\View())
+        ->namespace('linkrobins-referral', __DIR__ . '/views'),
 
     // Admin-only management of standalone campaign codes, plus the user's own
     // code-generation endpoint (the write half of the referral-code flow, kept
