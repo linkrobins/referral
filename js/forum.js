@@ -305,71 +305,91 @@ var qrModal = require('./qrModal');
       });
     });
 
-    // Core's NotificationList groups notifications by discussion and lumps
-    // anything not tied to one (like this type) into a neutral group labelled
-    // with the forum title. There's no per-type hook, so content() is
-    // reimplemented to route referral notifications into their own
-    // "Referrals" group while leaving all other grouping untouched.
+    // Core's NotificationList.content groups notifications by discussion and
+    // lumps anything not tied to one (like this type) into a neutral group
+    // labelled with the forum title. Core exposes no per-type or per-group
+    // hook, so content() is reimplemented here to route referral notifications
+    // into their own "Referrals" group while mirroring core's grouping for
+    // everything else.
+    //
+    // Fully overriding a core render method is inherently coupled to core's
+    // internals, so two guards keep it safe:
+    //   1. The logic below mirrors core's NotificationList.content as of
+    //      Flarum 2.0.0-rc.5 (flarum/core: forum/components/NotificationList).
+    //      When bumping core, re-check that method and reconcile this copy.
+    //   2. The whole body runs inside a try/catch that falls back to core's
+    //      original content() on any error, so a future core refactor degrades
+    //      to plain (un-relabelled) notification rendering rather than breaking
+    //      the entire notifications page. RegistrationReferralTest locks the
+    //      serialized contract this override reads (contentType + subject).
     function installNotificationGrouping(NotificationList) {
       if (!NotificationList || NotificationList._referralExtended) return;
       NotificationList._referralExtended = true;
 
       override(NotificationList.prototype, 'content', function (original, state) {
-        if (state.isLoading() || !state.hasItems()) return null;
+        try {
+          if (state.isLoading() || !state.hasItems()) return null;
 
-        var HeaderListGroup = flarum.reg.get('core', 'forum/components/HeaderListGroup');
-        var NotificationType = flarum.reg.get('core', 'forum/components/NotificationType');
-        var Discussion = flarum.reg.get('core', 'common/models/Discussion');
-        var listItems = flarum.reg.get('core', 'common/helpers/listItems');
+          var HeaderListGroup = flarum.reg.get('core', 'forum/components/HeaderListGroup');
+          var NotificationType = flarum.reg.get('core', 'forum/components/NotificationType');
+          var Discussion = flarum.reg.get('core', 'common/models/Discussion');
+          var listItems = flarum.reg.get('core', 'common/helpers/listItems');
 
-        return state.getPages().map(function (page) {
-          var groups = [];
-          var byKey = {};
+          return state.getPages().map(function (page) {
+            var groups = [];
+            var byKey = {};
 
-          page.items.forEach(function (notification) {
-            var subject = notification.subject();
-            if (typeof subject === 'undefined') return;
+            page.items.forEach(function (notification) {
+              var subject = notification.subject();
+              if (typeof subject === 'undefined') return;
 
-            var contentType = notification.contentType && notification.contentType();
-            var isReferral = contentType === NOTIFICATION_TYPE;
+              var contentType = notification.contentType && notification.contentType();
+              var isReferral = contentType === NOTIFICATION_TYPE;
 
-            // Mirror core's discussion resolution for everything else.
-            var discussion = null;
-            if (!isReferral) {
-              if (Discussion && subject instanceof Discussion) discussion = subject;
-              else if (subject && subject.discussion) discussion = subject.discussion();
-            }
+              // Mirror core's discussion resolution for everything else.
+              var discussion = null;
+              if (!isReferral) {
+                if (Discussion && subject instanceof Discussion) discussion = subject;
+                else if (subject && subject.discussion) discussion = subject.discussion();
+              }
 
-            var key = isReferral ? 'linkrobins-referral' : discussion ? 'd' + discussion.id() : 'neutral';
+              var key = isReferral ? 'linkrobins-referral' : discussion ? 'd' + discussion.id() : 'neutral';
 
-            byKey[key] = byKey[key] || { discussion: discussion, referral: isReferral, notifications: [] };
-            byKey[key].notifications.push(notification);
-            if (groups.indexOf(byKey[key]) === -1) groups.push(byKey[key]);
+              byKey[key] = byKey[key] || { discussion: discussion, referral: isReferral, notifications: [] };
+              byKey[key].notifications.push(notification);
+              if (groups.indexOf(byKey[key]) === -1) groups.push(byKey[key]);
+            });
+
+            return groups.map(function (group) {
+              var label;
+              if (group.referral) {
+                label = app.translator.trans('linkrobins-referral.forum.notifications.group_label');
+              } else if (group.discussion) {
+                var badges = group.discussion.badges().toArray();
+                label = m(Link, { href: app.route.discussion(group.discussion) }, [
+                  badges && badges.length ? m('ul', { className: 'HeaderListGroup-badges badges' }, listItems(badges)) : null,
+                  m('span', null, group.discussion.title()),
+                ]);
+              } else {
+                label = app.forum.attribute('title');
+              }
+
+              return m(
+                HeaderListGroup,
+                { label: label },
+                group.notifications
+                  .map(function (notification) {
+                    return m(NotificationType, { notification: notification });
+                  })
+                  .filter(Boolean)
+              );
+            });
           });
-
-          return groups.map(function (group) {
-            var label;
-            if (group.referral) {
-              label = app.translator.trans('linkrobins-referral.forum.notifications.group_label');
-            } else if (group.discussion) {
-              var badges = group.discussion.badges().toArray();
-              label = m(Link, { href: app.route.discussion(group.discussion) }, [
-                badges && badges.length ? m('ul', { className: 'HeaderListGroup-badges badges' }, listItems(badges)) : null,
-                m('span', null, group.discussion.title()),
-              ]);
-            } else {
-              label = app.forum.attribute('title');
-            }
-
-            return m(
-              HeaderListGroup,
-              { label: label },
-              group.notifications.map(function (notification) {
-                return m(NotificationType, { notification: notification });
-              })
-            );
-          });
-        });
+        } catch (e) {
+          // A core-internal change broke the reproduced pipeline; render core's
+          // own grouping so notifications still show (without the referral group).
+          return original(state);
+        }
       });
     }
 

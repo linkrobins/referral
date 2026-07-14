@@ -108,6 +108,55 @@ class RegistrationReferralTest extends TestCase
         $this->assertEquals($newUser->id, $notification->from_user_id);
     }
 
+    /**
+     * The forum-side NotificationList.content override (js/forum.js) fully
+     * reimplements core's grouping so referral notifications land in their own
+     * group instead of the neutral "forum title" bucket. That reproduced logic
+     * keys on two things in the serialized notification: contentType ===
+     * 'linkrobinsReferralRegistered', and a subject that is a user (never a
+     * discussion). This test locks that contract at the API layer so a change
+     * that would silently break the frontend grouping fails loudly here.
+     */
+    #[Test]
+    public function the_referral_notification_serialises_with_the_shape_the_grouping_relies_on(): void
+    {
+        $this->prepareDatabase([
+            'referral_invite_codes' => [
+                ['id' => 1, 'user_id' => 2, 'code' => 'TESTCODE', 'uses' => 0],
+            ],
+        ]);
+
+        $this->assertEquals(201, $this->register('TESTCODE')->getStatusCode());
+
+        // Explicit include of just the subject: this endpoint's default include
+        // pulls in subject.discussion, which core only makes valid once some
+        // registered notification subject type is discussion-bearing (a Post),
+        // so a plain GET here in a minimal core+referral forum is a separate
+        // concern. This test only cares about the serialized shape the frontend
+        // grouping reads, so it requests the subject relationship directly. The
+        // query param must go through withQueryParams(): the test request helper
+        // doesn't parse the query string off the URI.
+        $response = $this->send(
+            $this->request('GET', '/api/notifications', ['authenticatedAs' => 2])
+                ->withQueryParams(['include' => 'fromUser,subject'])
+        );
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $body = json_decode($response->getBody()->getContents(), true);
+
+        $referral = null;
+        foreach ($body['data'] as $notification) {
+            if (($notification['attributes']['contentType'] ?? null) === 'linkrobinsReferralRegistered') {
+                $referral = $notification;
+                break;
+            }
+        }
+
+        $this->assertNotNull($referral, 'Expected a notification with contentType linkrobinsReferralRegistered.');
+        // The subject the grouping inspects must be a user, not a discussion.
+        $this->assertEquals('users', $referral['relationships']['subject']['data']['type'] ?? null);
+    }
+
     #[Test]
     public function campaign_codes_do_not_notify_anyone(): void
     {
