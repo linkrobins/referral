@@ -12,6 +12,16 @@ use LinkRobins\Referral\ReferralRelation;
 
 class UserResourceFields
 {
+    /**
+     * Upper bound on how many referred users a single ?include=referredUsers
+     * loads. The relationship is only exposed to the user themselves or an
+     * admin, but a prolific referrer could still have thousands of rows; an
+     * uncapped ->get() would pull the whole set into memory and emit a huge
+     * JSON:API payload. The forum UI only renders the referral *count*, so
+     * this cap is purely a guard for direct API consumers.
+     */
+    protected const REFERRED_USERS_LIMIT = 100;
+
     public function __construct(
         protected EligibilityChecker $eligibility
     ) {}
@@ -61,11 +71,16 @@ class UserResourceFields
                 ->includable()
                 ->visible(fn (User $user, $context) => $context->getActor()->id === $user->id || $context->getActor()->isAdmin())
                 ->get(function (User $user) {
+                    // Capped and ordered newest-first (see REFERRED_USERS_LIMIT).
                     return ReferralRelation::where('referred_by_user_id', $user->id)
                         ->with('user')
+                        ->orderByDesc('id')
+                        ->limit(self::REFERRED_USERS_LIMIT)
                         ->get()
                         ->map(fn ($r) => $r->user)
-                        ->filter();
+                        ->filter()
+                        ->values()
+                        ->all();
                 }),
         ];
     }

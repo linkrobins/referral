@@ -13,6 +13,10 @@ class RecordReferral
 {
     public function __construct(
         protected LoggerInterface $logger,
+        protected NotificationSyncer $notifications,
+        // Retained only to resolve the request-scoped PendingReferralState
+        // fresh per request (a constructor-injected singleton would leak state
+        // across registrations under persistent runtimes).
         protected Container $container
     ) {}
 
@@ -55,7 +59,7 @@ class RecordReferral
                     // Tell the referrer their code was used. Guarded by the
                     // exists() check above, so a duplicate Registered event
                     // can't double-notify.
-                    $this->container->make(NotificationSyncer::class)->sync(
+                    $this->notifications->sync(
                         new ReferralRegisteredBlueprint($user),
                         [$referrer]
                     );
