@@ -79,7 +79,8 @@ class UserResourceFields
                         ->get()
                         ->map(fn ($r) => $r->user)
                         ->filter()
-                        ->values();
+                        ->values()
+                        ->all();
                 }),
         ];
     }
