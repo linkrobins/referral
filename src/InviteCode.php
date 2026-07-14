@@ -54,11 +54,17 @@ class InviteCode extends AbstractModel
 
     protected static function generateUniqueCode(): string
     {
-        $code = static::generateCode();
-        while (static::where('code', $code)->exists()) {
+        // Collisions are astronomically unlikely (32^8 ~ 1.1e12 codes), but
+        // cap the retries so a saturated table or a narrowed alphabet surfaces
+        // as a clear 500 in the logs rather than a hung worker looping forever.
+        for ($attempt = 0; $attempt < 10; $attempt++) {
             $code = static::generateCode();
+            if (! static::where('code', $code)->exists()) {
+                return $code;
+            }
         }
-        return $code;
+
+        throw new \RuntimeException('Unable to generate a unique referral code after 10 attempts.');
     }
 
     public static function getOrCreateForUser(User $user): self

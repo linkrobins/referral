@@ -10,8 +10,6 @@ var qrModal = require('./qrModal');
     var UserPage = flarum.reg.get('core', 'forum/components/UserPage');
     var LinkButton = flarum.reg.get('core', 'common/components/LinkButton');
     var Link = flarum.reg.get('core', 'common/components/Link');
-    var Avatar = flarum.reg.get('core', 'common/components/Avatar');
-    var humanTime = flarum.reg.get('core', 'common/helpers/humanTime');
     var LoadingIndicator = flarum.reg.get('core', 'common/components/LoadingIndicator');
     var UserPageResolver = flarum.reg.get('core', 'forum/resolvers/UserPageResolver');
 
