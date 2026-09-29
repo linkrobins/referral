@@ -32,7 +32,7 @@
     },
     "extra": {
         "flarum-extension": {
-            "title": "Link Robins Referral",
+            "title": "LR Referral",
             "category": "feature",
             "migrations": "migrations",
             "icon": {
