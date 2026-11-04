@@ -6,14 +6,17 @@ An invite code referral system for [Flarum](https://flarum.org/) 2.0. Each membe
 
 ## Features
 
-- Members get a unique 8-character invite code, with admin-configurable eligibility rules (allowed groups, minimum posts, account age, whitelist)
-- Share the code itself, a referral link that pre-fills it, or a QR code shown on screen and downloadable as a print-ready PNG
-- New users enter the code during sign-up, or arrive with it pre-filled via the link or QR code
-- Referral count badge appears on the member's profile nav tab and profile card
-- Referrer receives a notification (alert and optional email) when someone registers with their code
-- Admin campaign codes: standalone invite codes with labels, expiry dates, and use counts, each with its own QR code
-- Admin setting to require an invite code for all new registrations
-- Fully translatable via locale files
+- **Personal invite codes.** Each eligible member gets a unique 8-character code. Codes skip look-alike characters (no 0/O or 1/I), and entering one is not case-sensitive.
+- **Eligibility rules.** Choose who gets a personal code: allowed groups, a minimum post count, a minimum account age in days, and a whitelist of usernames. When several rules are set, a member must meet all of them. Admins and whitelisted usernames always qualify. Members who do not qualify yet see a short "check back later" note instead of a code.
+- **Three ways to share.** The code itself, a referral link (`?ref=CODE`) that pre-fills it, or a QR code shown on screen and downloadable as a print-ready PNG.
+- **Invite code at sign-up.** The Sign Up form has an Invite Code field, optional by default. Arriving through a referral link or QR code fills it in automatically (the link is remembered for 10 minutes, so it survives the step into the sign-up form).
+- **Require a code (invite-only).** One admin switch makes a valid code mandatory for every new registration. Expired or unknown codes are always refused with a clear message, whether or not codes are required.
+- **Referral counts.** Each member's count shows on the Referrals tab, on their profile card, and in the profile navigation.
+- **Notification to the referrer.** When someone registers with a member's code, the referrer gets a forum alert and an email. Both are on by default and each can be turned off in the member's notification settings.
+- **Campaign codes.** Standalone codes that belong to no member, for social media or promotions. Each has a label, an optional expiry date, a use counter, and its own QR code. They count uses but credit no referrer. Admins create and delete them from the extension's settings page; deleting one stops it from working.
+- **Fair counting.** Using your own code does not count, and a person is only ever credited to one referrer.
+- **Private by design.** A member's code and the list of who they referred are visible only to that member and to admins.
+- **Translatable.** All text lives in a locale file.
 
 ## Screenshots
 
@@ -37,20 +40,21 @@ An invite code referral system for [Flarum](https://flarum.org/) 2.0. Each membe
 
 ## Installation
 
-Install via Composer:
+Install with Composer:
 
 ```
 composer require linkrobins/referral
 ```
 
-Then run migrations and clear the cache:
+Then toggle it on in the admin panel's Extensions page.
+
+### Updating
 
 ```
+composer update linkrobins/referral
 php flarum migrate
 php flarum cache:clear
 ```
-
-Enable the extension in the Flarum admin panel under **Extensions**.
 
 ---
 
@@ -71,9 +75,11 @@ Enable the extension in the Flarum admin panel under **Extensions**.
 
 ### For Admins
 
-1. Go to **Admin → Extensions → Link Robins Referral**
-2. Toggle **Require invite code to register** to enforce invite-only registration
-3. When enabled, no one can register without a valid invite code
+Go to **Admin → Extensions → Link Robins Referral**. The page has three sections:
+
+1. **General.** Toggle **Require invite code to register** for invite-only registration.
+2. **Personal invite code eligibility.** Allowed groups (none checked means every group), minimum posts, minimum account age in days, and a whitelist of usernames separated by commas, spaces, or new lines. A rule left empty or at 0 is skipped.
+3. **Campaign codes.** Enter an optional label and expiry date and create a code. The table shows each code with its label, uses, and expiry; use **Show QR code** to download its QR image, or **Delete** to retire it.
 
 ---
 
@@ -90,45 +96,19 @@ The extension ships with English (`locale/en.yml`). To add a translation:
 
 3. No code changes needed; Flarum picks up locale files automatically
 
-### Example (`es.yml`)
-
-```yaml
-linkrobins-referral:
-  forum:
-    profile:
-      tab: Referencias
-      invite_code_title: Tu Código de Invitación
-      invite_code_help: Comparte este código con quien quieras invitar.
-      copy: Copiar
-      total_referrals: Total de Referencias
-      no_referrals: "¡Aún no hay referencias. Comparte tu código para empezar!"
-    sign_up:
-      invite_code_label: Código de invitación
-      invite_code_label_required: "Código de invitación *"
-      invite_code_placeholder: ej. K7XM2QNP
-    notifications:
-      registered_text: "{name} se registró usando tu código de invitación"
-  admin:
-    settings:
-      require_label: Requerir código de invitación para registrarse
-      require_help: Cuando está activado, los usuarios deben ingresar un código válido.
-      enabled: Activado
-      disabled: Desactivado
-  validation:
-    required: Se requiere un código de invitación para registrarse.
-    invalid: Código de invitación inválido.
-```
+The English file lists every string, grouped under `forum`, `admin`, `email`, and `validation`.
 
 ---
 
 ## Database
 
-The extension creates two tables:
+The extension creates two tables and one column:
 
-- `referral_invite_codes` — stores each member's unique invite code and use count
-- `referral_invited_user` — records which user referred which
+- `referral_invite_codes`: every invite code (personal and campaign), with its use count, label, and expiry
+- `referral_invited_user`: records which user referred which
+- `referral_count` on `users`: a cached count so profile cards stay fast
 
-These are created automatically when the extension is enabled. They are safely removed when the extension is uninstalled.
+They are created by the migrations and removed again if you uninstall the extension and purge its data.
 
 ---
 
